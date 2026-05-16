@@ -149,6 +149,16 @@ const FontLoader = () => (
       padding-bottom: 2px;
     }
 
+    .draggable-image {
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.2s;
+    }
+    .draggable-image.dragging { 
+      box-shadow: 8px 16px 48px rgba(28,26,24,0.22); 
+      z-index: 50;
+    }
+
     @media (max-width: 640px) {
       .hero-grid { flex-direction: column !important; }
       .about-grid { grid-template-columns: 1fr !important; }
@@ -248,6 +258,75 @@ function PhotoCard({ style, label, bg, zIndex = 3 }) {
         {label}
       </p>
     </div>
+  );
+}
+
+/* ─── DRAGGABLE IMAGE COMPONENT ─── */
+function DraggableImage({ src, alt, width, height }) {
+  const ref = useRef(null);
+  const pos = useRef({ x: 0, y: 0 });
+  const drag = useRef(false);
+  const origin = useRef({ mx: 0, my: 0, cx: 0, cy: 0 });
+
+  useEffect(() => {
+    const el = ref.current;
+    const onDown = (e) => {
+      drag.current = true;
+      el.classList.add('dragging');
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      origin.current = {
+        mx: clientX,
+        my: clientY,
+        cx: pos.current.x,
+        cy: pos.current.y,
+      };
+      e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!drag.current) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      pos.current.x = origin.current.cx + (clientX - origin.current.mx);
+      pos.current.y = origin.current.cy + (clientY - origin.current.my);
+      el.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`;
+    };
+    const onUp = () => {
+      drag.current = false;
+      el.classList.remove('dragging');
+    };
+
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('touchstart', onDown, { passive: false });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+    return () => {
+      el.removeEventListener('mousedown', onDown);
+      el.removeEventListener('touchstart', onDown);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchend', onUp);
+    };
+  }, []);
+
+  return (
+    <img
+      ref={ref}
+      src={src}
+      alt={alt}
+      className="draggable-image"
+      style={{
+        width,
+        height,
+        objectFit: 'cover',
+        borderRadius: '4px',
+        display: 'block',
+        position: 'relative',
+      }}
+    />
   );
 }
 
@@ -451,7 +530,7 @@ const projects = [
     index: '01',
     title: 'Cam Roller Prosthetic Testing Stand',
     sub: '3-D Modelling',
-    desc: 'A fully functional testing stand designed to observe the motion of a cam for a prosthetic. The finalized product was utilized by the Adaptive Bionics Lab situated in Calgary, AB to develop a new type of patented prosthetic with variable stiffness.',
+    desc: 'A fully functional testing stand designed to observe the motion of a cam for a prosthetic. The finalized product was utilized by the Adaptive Bionics Lab situated in Calgary, AB to dev[...]',
     tags: ['SolidWorks', 'MATLAB', 'Machining and Fabrication'],
   },
 ];
@@ -716,12 +795,19 @@ function About() {
             <br />
             Creative
           </h2>
-          <div style={{ position: 'relative', width: 220, height: 270 }}></div>
+          <div style={{ position: 'relative', width: 220, height: 270 }}>
+            <DraggableImage 
+              src="/7ed7342267e2bb2d9515aa3e65436167.jpg" 
+              alt="Mishal"
+              width={220}
+              height={270}
+            />
+          </div>
         </div>
         <div style={{ paddingTop: '3.5rem' }}>
           {[
             'Mishal,  a mechanical engineer, business student and aspiring marathoner born in Lahore in 2005, now based in Calgary.',
-            "I'm drawn to the intersection of rigorous engineering and ethical design — building things that work correctly and are beneficial for society (not to mention at least a little bit of fun!).",
+            "I'm drawn to the intersection of rigorous engineering and ethical design — building things that work correctly and are beneficial for society (not to mention at least a little bit [...]",
             "When I'm away from the screen, I'm either running, reading, biking, traveling or writing.",
           ].map((t, i) => (
             <p
@@ -781,7 +867,7 @@ function About() {
                     color: 'var(--crimson)',
                     minWidth: 80,
                   }}
-                >a
+                >
                   {l}
                 </span>
                 <span
